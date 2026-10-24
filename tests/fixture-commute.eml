@@ -1,0 +1,34 @@
+From: "Daft.ie Property Alert" <noreply@daft.ie>
+To: jidemobell@gmail.com
+Subject: 2 new properties under 1,300
+Date: Sun, 04 Oct 2026 09:15:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<!--
+  Synthetic fixture in the REAL Daft markup (photo link first, then details).
+
+  The two listings are identical in price, beds, baths and type. The ONLY
+  difference is location, which changes the commute score — used to prove the
+  commute component discriminates rather than just adding noise.
+-->
+<html><body>
+<table>
+  <tr><td>
+    <a href="https://www.daft.ie/for-rent/apartment-12-clonsilla-blanchardstown-dublin-15/6700002?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert"><img alt="Apartment 12, Clonsilla, Blanchardstown, Dublin 15, D15YT67" src="https://media.daft.ie/example4.jpg" width="600"/></a>
+    <p class="address-title-string" style="margin:0px;font-weight:700">Apartment 12, Clonsilla, Blanchardstown, Dublin 15, D15YT67</p>
+    <p style="margin:0px;margin-top:8px">&euro;1,300 per month</p>
+    <p style="margin:0px;margin-top:8px">2 Bed &middot; 1 Bath &middot; Apartment</p>
+    <div style="margin-top:8px"><img alt="BER Rating SI_666" src="https://mailassets.distilled.ie/email/daft/ber/SI_666.png" width="60"/></div>
+    <a href="https://www.daft.ie/for-rent/apartment-12-clonsilla-blanchardstown-dublin-15/6700002?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert">VIEW THIS AD</a>
+  </td></tr>
+  <tr><td>
+    <a href="https://www.daft.ie/for-rent/apartment-5-windtown-navan-meath/6700001?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert"><img alt="Apartment 5, Windtown, Navan, Co. Meath, C15AB12" src="https://media.daft.ie/example5.jpg" width="600"/></a>
+    <p class="address-title-string" style="margin:0px;font-weight:700">Apartment 5, Windtown, Navan, Co. Meath, C15AB12</p>
+    <p style="margin:0px;margin-top:8px">&euro;1,300 per month</p>
+    <p style="margin:0px;margin-top:8px">2 Bed &middot; 1 Bath &middot; Apartment</p>
+    <div style="margin-top:8px"><img alt="BER Rating SI_666" src="https://mailassets.distilled.ie/email/daft/ber/SI_666.png" width="60"/></div>
+    <a href="https://www.daft.ie/for-rent/apartment-5-windtown-navan-meath/6700001?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert">VIEW THIS AD</a>
+  </td></tr>
+</table>
+</body></html>

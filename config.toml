@@ -1,0 +1,518 @@
+# daftcron configuration
+#
+# Everything you'd normally want to change lives here. No code edits needed.
+# Note: Telegram credentials can also come from environment variables, which is
+# better if this repo is ever committed:
+#   DAFTCRON_TELEGRAM_TOKEN, DAFTCRON_TELEGRAM_CHAT
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATA SOURCE — read this before changing it
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# "email"  (default, compliant)
+#     Parses the saved-search alert emails Daft sends you. Daft chooses to send
+#     them, you read your own inbox, and nothing ever makes an automated request
+#     to daft.ie. No terms-of-use problem.
+#
+#     Setup: on daft.ie, run your search, then "Save this search" and enable
+#     email alerts. Point `email_dir` at a folder you drop the .eml files into
+#     (or auto-file them there with a mail rule).
+#
+# "imap"
+#     Same feed, but read straight from the mailbox instead of a folder. IMAP
+#     is a standard, supported way to access your own mail — it is how desktop
+#     mail clients work, and polling it is not something Google objects to.
+#     See the imap_* keys below.
+#
+#     Use this if you want the machine to need only to WAKE, rather than to
+#     have Mail.app open and running its rules. The mail server holds the
+#     alerts meanwhile, so nothing is lost while the machine is off.
+#
+# "sitemap"  (NOT COMPLIANT — do not enable)
+#     Polls https://www.daft.ie/api/sitemap/. robots.txt carries
+#     `Allow: /api/sitemap*`, but robots.txt is a crawler directive, not a
+#     licence. daft.ie/legal/terms-of-use separately prohibits:
+#       (c) use any robot, spider, website search/retrieval application, or
+#           other automated device, process or means to access, retrieve or
+#           index any portion of the Website and/or the Daft Service;
+#       (d) access, retrieve or index any portion of the Website and/or the
+#           Daft Service for purposes of constructing or populating any
+#           database;
+#     Storing results in daftcron.db is the thing clause (d) describes.
+#     The code is retained only so the work is not lost; running it requires
+#     an explicit --force and is not recommended.
+#
+[ingest]
+source = "imap"          # "email" (folder) or "imap" (mailbox)
+email_dir = "mail"        # relative to this folder, or an absolute path
+keep_processed = true     # move handled .eml files to mail/processed/
+
+# ── IMAP settings (only used when source = "imap") ──
+#
+# The password must be a Gmail App Password, NOT your account password:
+#   1. Google Account > Security > 2-Step Verification      (must be ON)
+#   2. Google Account > Security > App passwords            (create one)
+#   3. Copy the 16-character value.
+#
+# Do NOT paste it into this file. Use either:
+#   export DAFTCRON_IMAP_PASSWORD='xxxx xxxx xxxx xxxx'
+# or store it once in the macOS Keychain:
+#   security add-generic-password -s daftcron -a you@gmail.com -w
+#
+# Verify before scheduling anything:  daftcron.py check-imap
+#
+imap_host = "imap.gmail.com"
+imap_port = 993
+imap_user = ""                       # your full Gmail address
+imap_mailbox = "INBOX"
+# NOT "UNSEEN". Read state is shared across devices, so reading an alert on your
+# phone marks it read on the server and UNSEEN then matches nothing. Searching
+# all mail from Daft is immune to that. Re-reading the same messages is
+# harmless: listings already in the database are skipped by id.
+imap_search = 'FROM "daft.ie"'
+# Only look at mail from the last N days; 0 disables the limit.
+#
+# A mailbox accumulates years of alerts from PREVIOUS searches — this account
+# holds 1,555 Daft emails going back to 2022, but only 44 in the window that
+# matter. Ingesting the old ones inflates the database and poisons the area
+# medians with prices from listings that are long gone.
+#
+# 7 days is safe because the job polls every 15 minutes; the window would have
+# to be shorter than the longest the machine ever sleeps for anything to be
+# missed, and by then the listing is stale anyway.
+imap_since_days = 7
+imap_archive_folder = ""             # e.g. "Daft" to also move handled mail;
+                                     # "" leaves it in place and just marks read
+
+# ── Timeouts: leave these alone unless you have a reason ──
+# imap_timeout is the deadline for any single socket operation. 30s is far more
+# than Gmail needs — a search across 1,718 messages takes under a second — but
+# short enough that a stalled connection is noticed rather than waited on.
+#
+# This matters more than it looks. A socket with no timeout waits FOREVER, and
+# a daftcron run that hangs does not merely miss one cycle: launchd will not
+# start a second instance of a job that is still running, so the one stuck
+# process stops every future run. That happened on 2026-10-11 — the feed was
+# silent for three days and the log recorded no error at all.
+imap_timeout = 30
+
+# Hard ceiling on a whole run, in minutes. 0 disables it. This is the backstop
+# that guarantees the scheduler always frees up, whatever goes wrong. Raise it
+# only if you enable `scan`/`baseline`, which walk many pages.
+run_timeout_minutes = 10
+
+
+[daft]
+# Which listing types to follow. Options: "for-rent", "share", "for-sale".
+# "share" = rooms in shared houses. "for-rent" = whole properties.
+listing_types = ["for-rent"]
+
+# How many 200-ad sitemap pages to walk per scan, starting from the newest.
+# 2 pages = 400 newest ads per run. Raise if you scan infrequently.
+pages_per_scan = 2
+
+# How many pages to walk in `baseline` mode. 342 covers the full live index
+# (~68k ads) but takes a while. 20 pages (~4000 ads) is plenty to seed the
+# seen-set without alerting on existing stock.
+baseline_pages = 20
+
+# Politeness delay between listing fetches, in seconds. Do not set below 0.5.
+request_delay_seconds = 1.0
+
+# Optional cheap prefilter: only fetch ads whose URL slug contains one of these
+# strings. Country-wide scans get roughly 5-10x fewer detail fetches.
+# Leave empty ([]) to fetch everything.
+prefilter_slug_contains = []
+
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HARD FILTERS — a listing must pass ALL of these to be alerted.
+# Set a value to 0 / [] to disable that individual filter.
+# ─────────────────────────────────────────────────────────────────────────────
+[filters]
+# Hard ceiling on the ADVERTISED RENT, and it is deliberately generous.
+#
+# A filter is a blunt instrument: its job is to admit candidates, not to judge
+# them. The real comparison happens in scoring, on total monthly cost.
+#
+# ⚠ KEEP THIS AT OR ABOVE THE MAX PRICE IN THE DAFT SAVED SEARCH.
+#   If it sits below, the upper part of the feed is silently discarded — the
+#   saved search sends €1,600 listings, this rejects them, and nothing indicates
+#   anything was lost. Set the search WIDER than you need precisely so that
+#   overpriced listings which later get reduced are already known; that only
+#   works if this admits them.
+#
+# It sits above max_total_cost on purpose: an all-inclusive €1,500 flat is
+# cheaper than a €1,500 one where you pay every bill, and this cannot tell them
+# apart. Scoring can.
+max_price = 1600
+
+# ── The real budget: TOTAL monthly cost, not rent ───────────────────────────
+# Rent plus whatever the rent does not cover. This is what scoring measures.
+#
+# The alert email carries no description, so daftcron cannot tell whether bills
+# are included — that lives in the ad, which never arrives. So an UNMARKED
+# listing is assumed to exclude them, and a listing you have marked as
+# all-inclusive is not. Unknown is treated as your cost, which is the safe
+# direction: an unmarked place is judged more expensive than it may be.
+max_total_cost = 1400
+
+# What a rent-only property costs on top of the rent, per month:
+# electricity + heating + broadband + waste.
+#
+# Not applied to a listing marked all-inclusive, and NOT used as a hard filter
+# on an unmarked one — unknown might mean included, and rejecting those would
+# discard exactly the candidates worth inspecting. Tune it to your own usage:
+# roughly 180 for a BER A apartment on a heat pump, 350+ for oil heating with
+# no BER. If you see "bills unclear" notes on listings that are in fact
+# rent-only, this number is close to right.
+bills_allowance = 240
+
+min_price = 0
+min_beds = 1              # set your real minimum; 1 = no effective floor
+# Worth setting. A real listing came through at €875/month for "17 Bed · 7 Bath"
+# — obviously a whole-house or commercial let rather than a home, and it ranked
+# well until capped. 4 is generous for one person; lower it if you want to.
+max_beds = 4
+
+# Counties to accept, matched case-insensitively against Daft's countyName.
+#
+# This was originally left empty on the reasoning that the Daft alert decides
+# the geography. That reasoning assumed the alert HAD geography — it did not,
+# it was returning all of Ireland. So the filter lives here until the saved
+# search itself is given a location.
+#
+# The list below is a coarse envelope for a ~1 hour drive to IBM Damastown.
+# It is deliberately generous at the edges and is refined by [commute.times],
+# which is the precise instrument. Counties wholly outside the radius (Cork,
+# Galway, Mayo, Clare, Kerry, Sligo, Waterford, Limerick, Donegal, Wexford,
+# Carlow, Cavan, Monaghan, Longford, Roscommon, Tipperary, Leitrim) are out.
+counties = [
+  "Dublin", "Meath", "Kildare", "Louth",
+  "Westmeath", "Offaly", "Laois", "Wicklow",
+]
+
+# Property types, singular. Leave empty for any — we are open to an apartment
+# OR a house, so filtering here would only narrow the net. Common values:
+# house, apartment, duplex, studio, bungalow, terraced, semi-detached, flat.
+property_types = []
+
+# Lowest acceptable BER band: A, B, C, D, E, F, G. Empty = no BER filter.
+# Note: this drops listings with no BER published at all, which is common
+# for older private rentals. Use "" if you don't want that side-effect.
+min_ber = ""
+
+# Exclude listings with these words in the description.
+exclude_keywords = ["short term", "short-term", "student only", "female only", "summer let"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCORING — produces 0-100. Higher = act sooner.
+# ─────────────────────────────────────────────────────────────────────────────
+[scoring]
+alert_threshold = 50      # Telegram fires at or above this score
+daily_digest_max = 10     # how many listings in the daily summary message
+
+# Weight of each component (points available).
+# These do NOT need to sum to 100 — the score is normalised across whichever
+# components are enabled, so you can turn one off without rescaling the rest.
+w_price_headroom = 20     # how far below max_price
+# 0 because the alert email carries BER only as an image filename
+# ("BER Rating SI_666"), never as a letter — the code-to-band mapping is not
+# published. Scoring something unreadable would be noise. If you ever learn the
+# mapping, put the weight back and teach _ber_letter about the codes.
+w_ber = 0
+# 0 for two reasons, both specific to this budget.
+#
+# 1. It needs area medians, and at roughly one alert a day across a dozen
+#    counties, no single area will ever reach the 3-listing minimum. The
+#    component would stay dormant forever.
+# 2. More importantly, it measures € per bed — which rewards BIGGER properties.
+#    A 3-bed in Meath at €1,300 looks three times the "value" of a 1-bed in
+#    Dublin at the same rent, but a single renter does not need three bedrooms.
+#    It is the wrong metric for this search. Restoring it would need a
+#    like-for-like median (same area AND same bed count), which this volume
+#    cannot support either.
+w_value = 0
+w_freshness = 15          # how newly published
+w_price_drop = 10         # detected reduction since first seen
+# 35, the largest single component. At €1,300 the budget pushes you out of
+# Dublin, so the drive to Damastown is what separates one affordable option
+# from another — it is the primary trade, not a tiebreaker.
+w_commute = 35
+# Preferred bed count. Off when 0. See the note in score_listing: this is a
+# preference, not a filter — set min_beds instead if 2 beds is a requirement.
+w_beds = 10
+ideal_beds = 2
+# A few points for a town on a Dublin commuter rail line. Deliberately small,
+# and ADDED to the final score rather than weighted into it — so it can only
+# lift a rail town, never drag down one without a station. As a normal weight
+# it would sit in the denominator and lower everyone else's score, which would
+# re-rank the whole list and shift the alert threshold for a factor meant to be
+# a nudge.
+#
+# Not a second destination either: scoring a commute to a job that does not
+# exist yet would be inventing a requirement. This just lets a Naas or a
+# Dunboyne edge ahead, which is the flexibility actually wanted.
+rail_bonus = 5
+scam_penalty = 20         # subtracted per scam flag raised
+
+# Below this monthly rent a listing is treated as implausible for a whole
+# property and flagged. Catches rooms advertised as studios, weekly rates read
+# as monthly, and bait listings — the kind that would otherwise top the ranking
+# on price alone. 0 disables the check.
+min_sane_price = 500
+
+# A listing priced below this fraction of its area median is treated as a
+# possible scam (or a bargain worth verifying manually).
+scam_price_ratio = 0.6
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMUTE — the drive, for a hybrid week
+#
+# Often the largest hidden cost of a move. 20 extra minutes each way, three
+# days a week, is roughly 90 hours a year — and that is before fuel, wear and
+# the fact that a bad M3 morning is not a linear cost.
+#
+# Why a lookup table rather than a routing API: the candidate areas are a small
+# fixed set, one table entry takes seconds, and it costs nothing at runtime.
+# More importantly you can enter RUSH-HOUR times, which is what you actually
+# drive — a routing API would need a departure-time parameter to match, and
+# would need a key.
+#
+# ⚠ The values below are APPROXIMATE, off-peak, and unverified. Replace them
+#   with real Google Maps times at the hour you actually commute. Until an area
+#   is listed, listings there score neutrally and carry a flag, so you can see
+#   the gap rather than receive a confident wrong number.
+#
+# Keys must match the area slug in the listing URL:
+#   .../for-rent/some-house-navan-meath/123456  ->  "navan-meath"
+# ─────────────────────────────────────────────────────────────────────────────
+[commute]
+enabled = true
+destination = "IBM Damastown"   # change if your site differs
+# Used to build the one-tap directions link in each alert and in the report.
+# A text query, so Google resolves it — no latitude/longitude needed.
+#
+# Must be the name Google actually recognises. The previous value,
+# "IBM Technology Campus, Damastown, Dublin 15", did not match exactly and
+# Google stopped to ask "did you mean...?" before routing. The string below is
+# the one selected from that prompt, so it now goes straight to directions.
+# To change it: navigate once in Google Maps, then copy the place name it shows.
+destination_query = "IBM Campus - Building 4, Damastown Industrial Park, Dublin, Ireland"
+days_per_week = 3           # days you actually drive in
+# Set from your own statement that a ~1 hour radius is acceptable, with Navan
+# (25 min) as the comfortable reference point. A commute at max_minutes scores
+# nothing; 60 min therefore still earns a little, and 70 min scores zero.
+ideal_minutes = 25          # at or under this: full marks
+max_minutes = 70            # at or over this: zero
+
+[commute.times]
+# One-way drive minutes to IBM Damastown in the MORNING PEAK, keyed on a
+# fragment of the address slug and matched as a substring.
+#
+# ⚠ HOW MATCHING WORKS — this was broken, so please read it.
+# Daft spells the county "co-<county>" inside the slug:
+#       4-beechmount-grove-navan-co-meath
+# The keys below are written the way a person writes them, "navan-meath". That
+# substring is NOT present in Daft's slug, so every town entry silently failed
+# and every listing fell through to the bare county default. The table looked
+# well maintained and did nothing at all. commute_minutes() now normalises
+# "-co-" to "-" before matching, so write keys as "town-county" and they work.
+#
+# ⚠ THE VALUES ARE MORNING-PEAK ESTIMATES, and the previous set was off-peak
+#   and materially too optimistic — Navan was 25 against a real 45. This single
+#   component carries 35 of 90 points, so wrong numbers here move the ranking
+#   more than anything else in this file. Correct the ones you actually know,
+#   at the hour you actually drive; a bad M3 morning is not a linear cost.
+
+# ── 10-15 min: Dublin 15 — the office itself ────────────────────────────────
+"mulhuddart-dublin-15"     = 10
+"tyrrelstown-dublin-15"    = 11
+"blanchardstown-dublin-15" = 12
+"ongar-dublin-15"          = 12
+"clonsilla-dublin-15"      = 12
+"clonee-meath"             = 13
+"castleknock-dublin-15"    = 14
+
+# ── 20-33 min: west Dublin and the inner belt — still comfortable ──────────
+"lucan-dublin"             = 22
+"leixlip-kildare"          = 22
+"dunboyne-meath"           = 22
+"ratoath-meath"            = 24
+"swords-dublin"            = 25
+"maynooth-kildare"         = 28
+"ashbourne-meath"          = 28
+"finglas-dublin"           = 28
+"dunshaughlin-meath"       = 30
+"clondalkin-dublin"        = 30
+"ballymun-dublin"          = 30
+"kilcock-kildare"          = 31
+"celbridge-kildare"        = 32
+"straffan-kildare"         = 33
+
+# ── 35-50 min: viable at 3 days — the sweet spot ───────────────────────────
+"santry-dublin"            = 36
+"tallaght-dublin"          = 38
+"clane-kildare"            = 40
+"trim-meath"               = 42
+"enfield-meath"            = 42
+"dublin-city"              = 42
+"artane-dublin"            = 42
+"bray-wicklow"             = 45
+"naas-kildare"             = 45
+"navan-meath"              = 45
+"kinnegad-westmeath"       = 46
+"kilcullen-kildare"        = 48
+"athboy-meath"             = 48
+
+# ── 50-65 min: a stretch — only worth it for a materially better home ──────
+"drumcondra-dublin"        = 50
+"dun-laoghaire-dublin"     = 52
+"clonmellon-westmeath"     = 54
+"nurney-kildare"           = 55
+"edenderry-offaly"         = 55
+"kells-meath"              = 55
+"newbridge-kildare"        = 58
+"rathgar-dublin"           = 58
+"rathmines-dublin"         = 58
+"drogheda-louth"           = 58
+"ballsbridge-dublin"       = 60
+"ardee-louth"              = 60
+"kildare-town-kildare"     = 62
+"oldcastle-meath"          = 62
+"greystones-wicklow"       = 64
+"tyrrellspass-westmeath"   = 64
+"rathowen-westmeath"       = 65
+
+# ── 65 min and beyond: don't ──────────────────────────────────────────────
+"castlepollard-westmeath"  = 68
+"mullingar-westmeath"      = 70
+"moate-westmeath"          = 74
+"dundalk-louth"            = 76
+"rathnew-wicklow"          = 78
+"wicklow-town-wicklow"     = 80
+"portlaoise-laois"         = 84
+"tullamore-offaly"         = 86
+"athlone-westmeath"        = 88
+"tinahely-wicklow"         = 92
+"kilcormac-offaly"         = 94
+"durrow-laois"             = 95
+"ferbane-offaly"           = 95
+"birr-offaly"              = 98
+
+# ── County defaults ──────────────────────────────────────────────────────────
+# Used only when no specific area above matches. These are deliberately
+# PESSIMISTIC, and that is the point: a town that reaches the fallback is one
+# the table knows nothing about, and an unknown place must not be flattered
+# into the alert. They were previously set to a "typical" value, which is
+# precisely how unchecked towns got promoted.
+"dublin"                   = 38
+"meath"                    = 40
+"kildare"                  = 42
+"louth"                    = 58
+"westmeath"                = 65
+"offaly"                   = 86
+"laois"                    = 84
+"wicklow"                  = 72
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RAIL — a small bonus, not a second commute
+#
+# Rewards a town with a commuter rail service into Dublin, because that keeps
+# working if the job moves to the city. It is worth points, not a veto: it
+# nudges a Naas or a Dunboyne up the list without re-weighting the ranking for
+# a job that has not been applied for.
+#
+# Deliberately absent: NAVAN. There is no railway station there — the Navan
+# line closed and the M3 Parkway is the nearest stop, about 15 minutes' drive
+# out of town. Navan is fine for Damastown and poor for the city, which is the
+# whole reason it should not collect this bonus.
+# ─────────────────────────────────────────────────────────────────────────────
+[rail]
+# Matched as a substring of the address slug, the same way [commute.times] is.
+# Keep entries distinctive — a short one like "rush" can appear inside an
+# unrelated street name and award the bonus by accident.
+towns = [
+  # Western commuter line and the M3 Parkway branch. The best of both worlds:
+  # train to the city AND a short drive to Damastown.
+  "castleknock", "clonsilla", "coolmine", "hansfield", "dunboyne",
+  "m3-parkway", "ashtown", "pelletstown", "broombridge",
+  "leixlip", "confey", "louisa-bridge", "maynooth", "kilcock",
+
+  # Kildare line into Heuston, plus the Sallins & Naas park-and-ride.
+  "sallins", "naas", "newbridge", "kildare-town", "hazelhatch",
+  "celbridge", "adamstown", "clondalkin", "monasterevin",
+  "portarlington", "tullamore",
+
+  # Northern commuter, M1 corridor.
+  "balbriggan", "skerries", "donabate", "malahide", "portmarnock",
+  "clongriffin", "laytown", "gormanston", "drogheda", "dundalk",
+
+  # Bray and the Wicklow coast.
+  "bray", "greystones", "kilcoole", "rathdrum", "arklow", "wicklow-town",
+
+  # City end of the Maynooth line, for completeness.
+  "drumcondra",
+]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NOTIFY
+#
+# Leave the credentials below EMPTY in this file. Put them in secrets.toml
+# (copy secrets.example.toml) or in environment variables instead — this file
+# is versioned, and a Telegram bot token is a live credential.
+# ─────────────────────────────────────────────────────────────────────────────
+[notify]
+telegram_enabled = true
+telegram_token = ""       # -> secrets.toml or DAFTCRON_TELEGRAM_TOKEN
+telegram_chat_id = ""     # -> secrets.toml or DAFTCRON_TELEGRAM_CHAT
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ENQUIRY — the message to send an agent when you want a viewing
+#
+# Generated on demand. NEVER sent automatically, and no recipient is filled in:
+# a real Daft alert email carries no agent contact details whatsoever — no name,
+# no email address, no phone number. Daft agents are normally contacted through
+# Daft's own "Contact Agent" form on the listing page, so the flow is: open the
+# listing, choose Contact Agent, paste the prepared message.
+#
+# Set enabled = false to leave it out of alerts entirely.
+# ─────────────────────────────────────────────────────────────────────────────
+[enquiry]
+enabled = true
+name = "Jide"            # your name, as you want it signed
+phone = ""               # optional, appended under your name
+email = ""               # optional, appended under your name
+occupation = "software engineer"
+employer = "IBM"
+
+# Included to signal a settled, committed tenant rather than someone browsing.
+# Set 0 to leave the line out — the strongest signals to an agent are employment,
+# references and a firm move-in date, and those carry the message on their own.
+age = 44
+
+available_from = "December"  # when you can take a new lease
+lease_ends = "6 January"     # when your current lease ends; blank to omit
+extra = ""                   # any extra line you want, or "" for none
+
+# Your own wording for the "about me" paragraph. When set, this replaces the
+# line daftcron would otherwise build from occupation/employer/age above.
+#
+# Worth using your own words. The generated version is accurate but reads like
+# a form ("44, a software engineer at IBM"), and an agent receives a lot of
+# those. The qualities that actually reassure a landlord are the ones below:
+# non-smoker, quiet, tidy, and a previous landlord who would speak for you.
+#
+# ⚠ If you rewrap this, keep any space BEFORE the trailing backslash. TOML eats
+#   the newline and the next line's leading whitespace, so "...person, \" works
+#   and "...person,\" silently produces "person,tidy".
+about = """
+I'm a software developer with IBM — a non-smoker, very affable, quiet and not a \
+party person, tidy, and on good terms with my previous landlord, with a \
+reference available if useful.
+"""
+
+# ─────────────────────────────────────────────────────────────────────────────
+[report]
+top_n = 100               # rows written to out/report.html

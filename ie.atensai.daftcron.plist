@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  daftcron — launchd job for macOS.
+
+  Runs the email ingest every 30 minutes. Exits immediately when there is
+  nothing new, so a short interval is cheap.
+
+  Install:
+    cp ie.atensai.daftcron.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/ie.atensai.daftcron.plist
+
+  Note: launchd does NOT run jobs while the machine is asleep. Missed runs
+  execute once on wake. That is acceptable here because the feed is email —
+  your mail provider holds the alerts regardless of this machine's state.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>ie.atensai.daftcron</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Must be Python 3.11+. NOT /usr/bin/python3, which is 3.9 on macOS
+             and has no tomllib, so the job would fail silently every run. -->
+        <string>/opt/homebrew/bin/python3</string>
+        <string>/Users/jidemobell/Documents/code_files/Atensai/ideabox/ideas/implemented/daftcron/daftcron.py</string>
+        <string>ingest</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/jidemobell/Documents/code_files/Atensai/ideabox/ideas/implemented/daftcron</string>
+
+    <!-- launchd starts jobs with a minimal PATH. daftcron shells out to curl
+         and to security(1) for the Keychain, so make sure both are reachable. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- Every 15 minutes while the machine is awake.
+
+         launchd does NOT run jobs while asleep, but a StartInterval job that
+         comes due during sleep fires ONCE on wake — so the overnight and
+         lunchtime gaps are caught up automatically. Combined with RunAtLoad
+         (which fires at login and after a reboot), that covers "run when the
+         system powers up".
+
+         Cost is negligible: when there is nothing new the run exits in a few
+         seconds. -->
+    <key>StartInterval</key>
+    <integer>900</integer>
+
+    <!-- Also run once when the job loads, so a reboot catches up promptly. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jidemobell/Documents/code_files/Atensai/ideabox/ideas/implemented/daftcron/out/daftcron.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/jidemobell/Documents/code_files/Atensai/ideabox/ideas/implemented/daftcron/out/daftcron.err</string>
+
+    <!-- Keep it well-behaved if the machine is under load. -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

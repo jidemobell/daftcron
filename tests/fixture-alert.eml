@@ -1,0 +1,49 @@
+From: "Daft.ie Property Alert" <noreply@daft.ie>
+To: jidemobell@gmail.com
+Subject: 3 new properties matching your search
+Date: Sun, 04 Oct 2026 09:15:00 +0000
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<!--
+  Synthetic fixture mirroring the REAL Daft alert markup, verified against a
+  live email on 4 Oct 2026.
+
+  ORDER MATTERS. The photo link comes FIRST, then the details, then a second
+  "VIEW THIS AD" link to the same ad. The parser takes the text AFTER a link,
+  bounded by the next link — so it reads the block between the photo link and
+  the button link. Reversing the order breaks it (which is how this fixture
+  was originally written, wrongly).
+
+  Real alerts carry ONE listing per email; this carries three so the parser is
+  exercised across several blocks. BER appears only as an image filename,
+  exactly as in the real email.
+-->
+<html><body>
+<table>
+  <tr><td>
+    <a href="https://www.daft.ie/for-rent/maryfield-drive-artane-dublin-5/6685730?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert"><img alt="Maryfield Drive, Artane, Dublin 5, D05X123" src="https://media.daft.ie/example1.jpg" width="600"/></a>
+    <p class="address-title-string" style="margin:0px;font-weight:700">Maryfield Drive, Artane, Dublin 5, D05X123</p>
+    <p style="margin:0px;margin-top:8px">&euro;1,650 per month</p>
+    <p style="margin:0px;margin-top:8px">2 Bed &middot; 1 Bath &middot; Apartment</p>
+    <div style="margin-top:8px"><img alt="BER Rating SI_666" src="https://mailassets.distilled.ie/email/daft/ber/SI_666.png" width="60"/></div>
+    <a href="https://www.daft.ie/for-rent/maryfield-drive-artane-dublin-5/6685730?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert">VIEW THIS AD</a>
+  </td></tr>
+  <tr><td>
+    <a href="https://www.daft.ie/for-rent/apartment-12-the-coast-baldoyle-dublin-13/6691111?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert"><img alt="Apartment 12, The Coast, Baldoyle, Dublin 13, D13AB45" src="https://media.daft.ie/example2.jpg" width="600"/></a>
+    <p class="address-title-string" style="margin:0px;font-weight:700">Apartment 12, The Coast, Baldoyle, Dublin 13, D13AB45</p>
+    <p style="margin:0px;margin-top:8px">&euro;1,750 per month</p>
+    <p style="margin:0px;margin-top:8px">1 Bed &middot; 1 Bath &middot; Apartment</p>
+    <div style="margin-top:8px"><img alt="BER Rating SI_666" src="https://mailassets.distilled.ie/email/daft/ber/SI_666.png" width="60"/></div>
+    <a href="https://www.daft.ie/for-rent/apartment-12-the-coast-baldoyle-dublin-13/6691111?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert">VIEW THIS AD</a>
+  </td></tr>
+  <tr><td>
+    <a href="https://www.daft.ie/for-rent/pottore-aughnasheelin-carrick-on-shannon-askill-co-leitrim/6686536?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert"><img alt="Pottore, Aughnasheelin, Carrick-on-shannon, Co. Leitrim, N41XY88" src="https://media.daft.ie/example3.jpg" width="600"/></a>
+    <p class="address-title-string" style="margin:0px;font-weight:700">Pottore, Aughnasheelin, Carrick-on-shannon, Co. Leitrim, N41XY88</p>
+    <p style="margin:0px;margin-top:8px">&euro;1,200 per month</p>
+    <p style="margin:0px;margin-top:8px">4 Bed &middot; 1 Bath &middot; House</p>
+    <div style="margin-top:8px"><img alt="BER Rating SI_666" src="https://mailassets.distilled.ie/email/daft/ber/SI_666.png" width="60"/></div>
+    <a href="https://www.daft.ie/for-rent/pottore-aughnasheelin-carrick-on-shannon-askill-co-leitrim/6686536?utm_campaign=property_alert_email_residential_to_let&amp;utm_medium=email&amp;ea=1&amp;utm_source=property_alert">VIEW THIS AD</a>
+  </td></tr>
+</table>
+</body></html>

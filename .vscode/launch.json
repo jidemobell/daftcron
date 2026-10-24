@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Step through the parser and the scoring with breakpoints.
+      // Set one in parse_alert_email() or score_listing(), then run this.
+      "name": "daftcron: debug parse + score",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/daftcron.py",
+      "args": ["ingest", "--dry-run"],
+      "cwd": "${workspaceFolder}",
+      "python": "/opt/homebrew/bin/python3",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      // Debug a single saved email through the parser. Put a breakpoint in
+      // parse_alert_email() and inspect what comes out of the real markup.
+      "name": "daftcron: debug one .eml",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/daftcron.py",
+      "args": ["dump-email", "${input:emlPath}"],
+      "cwd": "${workspaceFolder}",
+      "python": "/opt/homebrew/bin/python3",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "emlPath",
+      "type": "promptString",
+      "description": "Path to the .eml file to parse",
+      "default": "tests/fixture-alert.eml"
+    }
+  ]
+}

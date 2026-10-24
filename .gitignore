@@ -1,0 +1,20 @@
+# Credentials — keep these local.
+#
+# secrets.toml holds the Telegram bot token and any mailbox details. A bot
+# token is live the moment it is pushed: anyone holding it can send messages as
+# your bot. config.toml deliberately stays versioned, because it holds the
+# tuned settings you will actually want history for.
+secrets.toml
+
+# Your housing search: listings, prices, scores, and the email data itself.
+data/
+out/
+mail/
+
+# Python noise
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# macOS
+.DS_Store

@@ -1,0 +1,32 @@
+{
+  // Must be 3.11+ for tomllib. NOT /usr/bin/python3, which is 3.9 on macOS —
+  // selecting it makes the editor flag every `import tomllib` as an error, and
+  // would break the launchd job too if used there.
+  "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+
+  // So Pylance resolves `import daftcron` in the test snippets used against it.
+  "python.analysis.extraPaths": ["${workspaceFolder}"],
+
+  // Keep the database, generated output and saved emails out of search results
+  // and the file tree. They are data, not source.
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  },
+  "search.exclude": {
+    "data/**": true,
+    "out/**": true,
+    "mail/**": true
+  },
+  "files.watcherExclude": {
+    "data/**": true,
+    "out/**": true,
+    "mail/**": true
+  },
+
+  // The generated report is a build artefact — don't offer to edit it.
+  "files.readonlyInclude": {
+    "out/**": true,
+    "data/**": true
+  }
+}

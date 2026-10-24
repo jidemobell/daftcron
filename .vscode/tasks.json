@@ -1,0 +1,122 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "daftcron: status  (check everything)",
+      "detail": "Telegram, IMAP, the launchd schedule, last run, and database counts.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "status"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "daftcron: ingest  (run now)",
+      "detail": "Find new listings and send Telegram alerts. Skips anything already seen.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "ingest"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: ingest --dry-run",
+      "detail": "Score and rank everything but send no alerts. Use to check without buzzing your phone.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "ingest", "--dry-run"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: top 10",
+      "detail": "The current ranking, in the terminal.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "top", "10"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: report + open",
+      "detail": "Regenerate out/report.html and open it in the browser.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3 daftcron.py report && open out/report.html",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: stats",
+      "detail": "Run history and coverage from the database.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "stats"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: check-imap",
+      "detail": "Verify Gmail access without processing or marking anything read.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "check-imap"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: test-telegram",
+      "detail": "Send a test message to your phone.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "test-telegram"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: cadence",
+      "detail": "How Daft sends alerts, and whether the parser is coping with the real format.",
+      "type": "shell",
+      "command": "/opt/homebrew/bin/python3",
+      "args": ["daftcron.py", "cadence"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: launchd — is it loaded?",
+      "detail": "PID, last exit status, and label. Exit status 0 means the last run was clean.",
+      "type": "shell",
+      "command": "launchctl list | grep daftcron || echo 'NOT LOADED — nothing runs automatically'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: logs — recent activity",
+      "detail": "Tail the run log and show any errors.",
+      "type": "shell",
+      "command": "tail -25 out/daftcron.log; echo; echo '--- errors ---'; cat out/daftcron.err",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "daftcron: reload the launchd job",
+      "detail": "Reinstall the plist and reload it. Run this after editing the plist.",
+      "type": "shell",
+      "command": "cp ie.atensai.daftcron.plist ~/Library/LaunchAgents/ && launchctl unload ~/Library/LaunchAgents/ie.atensai.daftcron.plist 2>/dev/null; launchctl load -w ~/Library/LaunchAgents/ie.atensai.daftcron.plist && launchctl list | grep daftcron",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    }
+  ]
+}
